@@ -4,12 +4,13 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import time
 i=0
 count=0
 def row(column,row,game): 
     for r in range(-(n-1),1):
         r=(-1)*r
-        print(r)
+        
         if game[r][column]==0:
 
             return r
@@ -33,12 +34,14 @@ def Win(board, player):
     for y in range(n):
         for x in range(k-3):
             if board[y][x] == player and board[y][x+1] == player and board[y][x+2] == player and board[y][x+3] == player:
+                print("hori")
                 return True
 
     # check vertical spaces
     for y in range(n-3):
         for x in range(k):
             if board[y][x] == player and board[y+1][x] == player and board[y+2][x] == player and board[y+3][x] == player:
+                print("virt")
                 return True
 
 
@@ -46,12 +49,14 @@ def Win(board, player):
     for x in range(k):
         for y in range(n-3):
             if board[y][x] == player and board[y+1][x-1] == player and board[y+2][x-2] == player and board[y+3][x-3] == player:
+                print("diagup")
                 return True
 
     # check \ diagonal spaces
     for x in range(k-3):
         for y in range(n-3):
             if board[y][x] == player and board[y+1][x+1] == player and board[y+2][x+2] == player and board[y+3][x+3] == player:
+                print("diagdown")
                 return True
 
     return False
@@ -79,7 +84,7 @@ def win_pos(board, player):
     for x in range(k-3):
         for y in range(n-3):
             if board[y][x] == player and board[y+1][x+1] == player and board[y+2][x+2] == player and board[y+3][x+3] == player:
-                return True
+                return True 
 
     return False
 def col():
@@ -134,12 +139,15 @@ def minimax(board, max_play, depth ,alpha,beta,rot):
                 b_copy=game_board(b_copy,1,rows,col)
                 b,new_score=minimax(b_copy,False,depth-1,alpha,beta,rot)
             except:
-                print("your anoying")
+                
                 pass
             if new_score > value:
                 value=new_score
                 column=col
+            alpha=max(alpha,value)
+            if alpha>= beta:
                 
+                break
                     
            
         return column, value
@@ -155,12 +163,15 @@ def minimax(board, max_play, depth ,alpha,beta,rot):
                 b_copy=game_board(b_copy,2,rows,col)
                 b,new_score=minimax(b_copy,True,depth-1,alpha,beta,rot)
             except:
-                print("your anoying")
+                
                 pass
             if new_score< value:
                 value=new_score
                 column=col
+            beta=min(beta,value)
+            if alpha>=beta:
                 
+                break
                 
         return column, value
 
@@ -173,17 +184,18 @@ def score_pos(board,player):
     for i in range(0,n-1):
         if board[i][l]==player:
             center_count =center_count+1
+           
           
-    score = center_count * 6
+    score = center_count*6
     
         # check horizontal spaces
     for y in range(n):
-        for x in range(k-3):
+        for x in range(k-2):
             if board[y][x] == player and board[y][x+1] == player:
                 score=score+2
 
     # check vertical spaces
-    for y in range(n-3):
+    for y in range(n-2):
         for x in range(k):
             if board[y][x] == player and board[y+1][x] == player:
                 score=score+2
@@ -191,25 +203,25 @@ def score_pos(board,player):
 
    # check / diagonal spaces
     for x in range(k):
-        for y in range(n-3):
+        for y in range(n-2):
             if board[y][x] == player and board[y+1][x-1] == player:
                 score=score+2
 
     # check \ diagonal spaces
-    for x in range(k-3):
-        for y in range(n-3):
+    for x in range(k-2):
+        for y in range(n-2):
             if board[y][x] == player and board[y+1][x+1] == player:
                 score=score+2
 
 
          # check horizontal spaces
     for y in range(n):
-        for x in range(k-3):
+        for x in range(k-2):
             if board[y][x] == op and board[y][x+1] == op:
                 score=score-3
 
     # check vertical spaces
-    for y in range(n-3):
+    for y in range(n-2):
         for x in range(k):
             if board[y][x] == op and board[y+1][x] == op:
                 score=score-3
@@ -217,13 +229,13 @@ def score_pos(board,player):
 
    # check / diagonal spaces
     for x in range(k):
-        for y in range(n-3):
+        for y in range(n-2):
             if board[y][x] == op and board[y+1][x-1] == op:
                 score=score-3
 
     # check \ diagonal spaces
-    for x in range(k-3):
-        for y in range(n-3):
+    for x in range(k-2):
+        for y in range(n-2):
             if board[y][x] == op and board[y+1][x+1] == op:
                 score=score-3
     # check horizontal spaces
@@ -330,9 +342,7 @@ def score_pos(board,player):
 
     return score
 def game_board(game_map, player, row, column):
-    print(row)
-    print("column",column)
-    print(game_map)
+    
     game_map[row][column] = player
 
     #plt.matshow(game_map);
@@ -341,7 +351,7 @@ def game_board(game_map, player, row, column):
     return(game_map)
 def gab(game_map, player, row, column):
     
-    print(row)
+    
     game_map[row][column] = player
 
     plt.matshow(game_map);
@@ -378,7 +388,7 @@ def play():
         plt.matshow(game);
         plt.show()
         x=1
-        i=0
+        i=1
         count=0
         while x==1:
             rot=n-1
@@ -387,7 +397,7 @@ def play():
             if i<1:
                 current_player=2
                 game,column_choice,current_player=plank(game,rot)#,current_player)
-                print(game)
+                
                 i=i+1
                 count=count+1
             else:
@@ -403,9 +413,13 @@ def play():
                     print("OMG it did somthing")
                 if chair==30:
                     print("I could be a random number generator and be better than you!!!")
-                column,maxscore=minimax(game, True, 10,-math.inf,math.inf,rot)
+                time_start = time.clock()
+                column,maxscore=minimax(game, True, 7,-math.inf,math.inf,rot)
+                
                 rows=row(column,rot,game)
                 game=gab(game,current_player,rows,column)
+                time_elapsed = (time.clock() - time_start)
+                print(time_elapsed)
                 i=0
                 count=count+1
 
