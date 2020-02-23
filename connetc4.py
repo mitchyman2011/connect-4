@@ -7,29 +7,6 @@ import math
 import time
 from numba import njit
 import concurrent.futures
-import cProfile, pstats, io
-import itertools
-
-
-
-def profile(fnc):
-    
-    """A decorator that uses cProfile to profile a function"""
-    
-    def inner(*args, **kwargs):
-        
-        pr = cProfile.Profile()
-        pr.enable()
-        retval = fnc(*args, **kwargs)
-        pr.disable()
-        s = io.StringIO()
-        sortby = 'cumulative'
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats()
-        print(s.getvalue())
-        return retval
-
-    return inner
 @njit
 def row(column,row,game): 
     for load in range(0,n):
@@ -37,6 +14,7 @@ def row(column,row,game):
         if game[load][column]==0:
 
             return load
+    
     return (-1)   
 
 def draw(board):
@@ -183,8 +161,7 @@ def plank(game_b,rows,player):
 @njit    
 def terminal(board,player,oplayer,count):
     return win_pos(board,player,count) or win_pos(board,oplayer,count) 
-
-
+@njit
 def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l):
     
     if depth==0 or terminal(board,player,oplayer,count):
@@ -277,7 +254,8 @@ def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l):
                break
                
         return column, value
-'''@profile
+    
+@njit
 def score_pos(board,player,op,count ):
     
     
@@ -351,73 +329,6 @@ def score_pos(board,player,op,count ):
                                 score=score-2*i
   
     
-    return score'''
-def score_pos(board,player,op,count ):
-    
-    
-    center_count=0
-    score=0
-    l=int(math.ceil((k-1)/2))
-    for i in range(0,n-1):
-        if board[i][l]==player:
-            
-            center_count =center_count+1
-            score = center_count*10
-        if board[i][l]==op:
-            
-            score = score-1
-    x=np.arange(k)
-    y=np.arange(n)    
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        scores=[executor.submit(scoring, args=[y,x,board,player,op,score] )for x,y in itertools.product(range(0,n),range(0,k))]
-    
-    return 0
-    
-def scoring(y,x,board,player,op,score):
-    score=0
-    if x<=(k-connect):
-        o=[np.complex64(x) for x in range(0)]
-                    
-        for i in range(0,(connect-1)):
-            o.append(board[y][x+i])
-            if len(set(o))==1:
-                            
-                if o[0]== player:
-                                
-                                
-                    score=score+2*i
-                if o[0]== op:
-                    score=score-2*i
-    if y<=(n-connect):
-        o=[np.complex64(x) for x in range(0)]
-                    
-        for i in range(0,(connect-1)):
-            o.append(board[y+i][x]) 
-            if len(set(o))==1:
-                if o[0]== player:
-                    score=score+2*i
-                    if o[0]== op:
-                        score=score-2*i
-    if y<=(n-connect) and x<=(k-connect):
-        o=[np.complex64(x) for x in range(0)]
-        for i in range(0,(connect-1)):
-            o.append(board[y+i][x+i]) 
-            if len(set(o))==1:
-                if o[0]== player:
-                    score=score+2*i
-                if o[0]== op:
-                    score=score-2*i
-    if (connect-1)<=x and y<=(n-connect):
-        o=[np.complex64(x) for x in range(0)]
-        for i in range(0,(connect-1)):
-            o.append(board[y+i][x-i])
-            if len(set(o))==1:
-                if o[0]== player:
-                    score=score+2*i
-                if o[0]== op:
-                    score=score-2*i
-  
-    print(score)
     return score
 @njit
 def game_board(game_map, player, row, column):
@@ -567,10 +478,9 @@ def ai(depth,game,count):
             time_b=time.time()
                                 
             cut=count
-            
             column,maxscore=minimax(game, True, depth,-math.inf,math.inf,rot,current_player,oplayer,count,l)
-            time.sleep(120)
             count=cut
+            print(column)
             chair=random.randint(0,40)
             if chair==1:
                 print("EZ PZ!!!")
@@ -584,7 +494,8 @@ def ai(depth,game,count):
                 print("I could be a random number generator and be better than you!!!")
                                     
             rows=row(column,rot,game)
-                    
+            print(rows,column)
+            print(game[0][column])
             game=gab(game,current_player,rows,column)
             if count<n:
                 count=count+1    
