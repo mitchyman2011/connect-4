@@ -5,19 +5,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import time
-from numba import njit
-import concurrent.futures
+from numba import njit,prange
+
+
+
+
+
 @njit
-def row(column,row,game): 
+def row(column,row,game,n): 
     for load in range(0,n):
         
         if game[load][column]==0:
 
             return load
-    
     return (-1)   
 
-def draw(board):
+def draw(board,connect,n,k):
     for x in range(0,k):
         for y in range(0,n):
             if board[y][x]==0:
@@ -25,7 +28,7 @@ def draw(board):
     else:
         return True
 
-def Win(board, player,count):
+def Win(board, player,count,connect,n,k):
     
     
     for y in range(count):
@@ -90,8 +93,8 @@ def Win(board, player,count):
                         return (True,t,l)
     return False,0,0
 @njit
-def win_pos(board, player,count):
-    for y in range(0,count):
+def win_pos(board, player,count,connect,n,k):
+    for y in range(0,n):
         for x in range(0,k):
             if x<=(k-connect):
                 o=[np.complex64(x) for x in range(0)]
@@ -140,12 +143,12 @@ def win_pos(board, player,count):
                         
                         return (True)
     return False
-def col():
+def col(k):
     col=int(input("what column would you like: "))
     if col>k-1 or col<0:
         return("m")
     return(col)
-def plank(game_b,rows,player):
+def plank(game_b,rows,player,n):
     column_choice=0
     try:
         column_choice=int(col())
@@ -153,26 +156,27 @@ def plank(game_b,rows,player):
         print("put it in range boi")
         return (game_b,column_choice,"m")   
         
-    rows=row(column_choice,rows,game_b)
+    rows=row(column_choice,rows,game_b,n)
     if rows == None:
         return (game_b,column_choice,"m")    
     game_b=gab(game_b,player,rows,column_choice)
     return(game_b,column_choice,player)   
 @njit    
-def terminal(board,player,oplayer,count):
-    return win_pos(board,player,count) or win_pos(board,oplayer,count) 
+def terminal(board,player,oplayer,count,connect,n,k):
+    return win_pos(board,player,count,connect,n,k) or win_pos(board,oplayer,count,connect,n,k) 
+
 @njit
-def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l):
+def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players):
     
-    if depth==0 or terminal(board,player,oplayer,count):
+    if depth==0 or terminal(board,player,oplayer,count,connect,n,k):
     
         
-        if terminal(board,player,oplayer,count):
-            if win_pos(board,player,count):
+        if terminal(board,player,oplayer,count,connect,n,k):
+            if win_pos(board,player,count,connect,n,k):
                 
                 return(None,100000000)
                 
-            if win_pos(board, oplayer,count):
+            if win_pos(board, oplayer,count,connect,n,k):
                 
                 return(None, -100000000)
             else:
@@ -180,69 +184,74 @@ def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l):
                 return (None,0)
         else:
             
-            return(None,score_pos(board,player,oplayer,count))
+            return(None,score_pos(board,player,oplayer,count,connect,n,k))
     if max_play:
         value=-math.inf
-        column=random.randint(0,k-1)
-        if  count<n:
-            count=count+1
-            
-        for col in range(0,k):
+        
+        
+        #column,value=maxi(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value) 
+        
+        for col in prange(0,k):
             
             #try:
-            rows =row(col,rot,board)
+            rows =row(col,rot,board,n)
             count=rows+1
             if rows == -1:
                 
-                break
+                continue
             b_copy=board.copy()
             b_copy=game_board(b_copy,player,rows,col)
-            b,new_score=minimax(b_copy,False,depth-1,alpha,beta,rot,player,oplayer,count,l)
+            b,new_score=minimax(b_copy,False,depth-1,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players)
                 
             #except:
-                
-                
             
+                
+            new_score=new_score- 1/depth
             if new_score > value:
                 
                 value=new_score
                 column=col
-                
+             
             alpha=max(alpha,value)
             if alpha>= beta:
                
                break
-                    
-         
+               
+        
         return column, value
     if max_play==False:
         oplayer=l
         l=l+1
         if l==player:
             max_play=True
-            
+            if l==total_players:
+                l=0
         if total_players<l and l!=player:
             l=1
             max_play=False
         if l!=player:
             max_play=False
-           
         value=math.inf
-        column=random.randint(0,k-1)
+        print(l)
+        #column,value=mini(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value)    
         
-        for col in range(0,k):
+        
+        
+        for col in prange(0,k):
            
                 
             #try:
-            rows =row(col,rot,board)
+            rows =row(col,rot,board,n)
             count=rows+1
             if rows == -1:
                 
-                break
+                continue
             b_copy=board.copy()
             b_copy=game_board(b_copy,oplayer,rows,col)
-            b,new_score=minimax(b_copy,max_play,depth-1,alpha,beta,rot,player,oplayer,count,l)
-                
+            b,new_score=minimax(b_copy,max_play,depth-1,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players)
+            
+            new_score=new_score+ 1/depth   
+           
             if new_score< value:
                 value=new_score
                 column=col
@@ -252,11 +261,69 @@ def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l):
             if alpha>=beta:
                
                break
-               
+            
+        
         return column, value
-    
+
 @njit
-def score_pos(board,player,op,count ):
+def maxi(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value):
+            for col in prange(0,k):
+                
+                #try:
+                rows =row(col,rot,board,n)
+                count=rows+1
+                if rows == -1:
+                    
+                    continue
+                b_copy=board.copy()
+                b_copy=game_board(b_copy,player,rows,col)
+                b,new_score=minimax(b_copy,False,depth-1,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players)
+                    
+                #except:
+                
+                    
+                new_score=new_score- 1/depth
+                if new_score > value:
+                    
+                    value=new_score
+                    column=col
+                 
+                alpha=max(alpha,value)
+                if alpha>= beta:
+                   
+                   break
+            return column,value
+@njit
+def mini(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value):
+           
+        for col in prange(0,k):
+           
+                
+            #try:
+            rows =row(col,rot,board,n)
+            count=rows+1
+            if rows == -1:
+                
+                continue
+            b_copy=board.copy()
+            b_copy=game_board(b_copy,oplayer,rows,col)
+            b,new_score=minimax(b_copy,max_play,depth-1,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players)
+            
+            new_score=new_score+ 1/depth   
+           
+            if new_score< value:
+                value=new_score
+                column=col
+                
+            
+            beta=min(beta,value)
+            if alpha>=beta:
+               
+               break
+        return column,value
+
+@njit
+def score_pos(board,player,op,count,connect,n,k ):
     
     
     center_count=0
@@ -330,6 +397,7 @@ def score_pos(board,player,op,count ):
   
     
     return score
+
 @njit
 def game_board(game_map, player, row, column):
     
@@ -337,6 +405,7 @@ def game_board(game_map, player, row, column):
 
     #plt.matshow(game_map);
     #plt.show()
+    
     #print(game_map)
     return(game_map)
 @njit
@@ -348,7 +417,7 @@ def gab(game_map, player, row, column):
    
     #print(game_map)
     return(game_map)
-def plot(game_map,t,y,l):
+def plot(game_map,t,y,l,n,k,total_players):
     
     for i in range(0,n):
         for j in range(0,k):
@@ -365,16 +434,16 @@ def plot(game_map,t,y,l):
     return
 def connect_c():
     try:
-        global connect
+        
         connect=int(input("how many connects"))
     except:
         print("please enter an integer")
         connect_c()
-    
-def game_size():
+    return connect
+def game_size(connect):
     print("clasic is 6x7 ")
-    global n
-    global k
+    
+    
     try:
         n=int(input("how may rows ya want? "))
         k= int(input("how may columns you want? "))
@@ -387,10 +456,10 @@ def game_size():
     if n>1000 or k>1000:
             print("i want you to have a good time not wait so smaller number")
             game_size()
-    
+    return(n,k)
 def hu_pl_c():
     try:
-        global h_p_c 
+        
         h_p_c=int(input("how many humans(selecting one will be against the AI must be less than 7)"))
     except:
          print("please enter an integer")
@@ -412,7 +481,7 @@ def turnn():
         
     return(turn)
     
-def diff():
+def diff(total_players):
     try:
         difficalty=int(input("Pick your difficalty(type in the number):\n 1:easy\n 2:medium\n 3:hard\n 4:Hyper Hard(might be a little slow)\n 5:impossible(it will take to long hahah)\n"))
     except:
@@ -436,20 +505,20 @@ def diff():
     else:
         diff()
     
-def PvE(depth,game,turn):
+def PvE(depth,game,turn,connect,h_p_c,n,k,rot,count,ai_c,total_players):
     x=1
     count=1
     while x==1:
         if turn<1:
-            count=player(game,count)
+            count=player(game,count,h_p_c,n,k,rot,total_players,connect)
             turn=turn+1
             
         else:
-            count=ai(depth, game,count)
+            count=ai(depth,game,count,total_players,h_p_c,rot,n,k,connect)
            
             turn=0
         
-def player(game,count):
+def player(game,count,h_p_c,n,k,rot,total_players,connect):
     if 0<h_p_c:
         for p in range(1,h_p_c+1):
             current_player = p
@@ -458,14 +527,14 @@ def player(game,count):
                 print("you miss your go")
             if count<n:
                 count=count+1
-            check_win(game,current_player,count)
+            check_win(game,current_player,count,n,k,total_players,connect)
     
     return count
            
                             
                 
                             
-def ai(depth,game,count):
+def ai(depth,game,count,total_players,h_p_c,rot,n,k,connect):
     for i in range(h_p_c+1,total_players+1):
         current_player=i
         oplayer=1
@@ -478,9 +547,10 @@ def ai(depth,game,count):
             time_b=time.time()
                                 
             cut=count
-            column,maxscore=minimax(game, True, depth,-math.inf,math.inf,rot,current_player,oplayer,count,l)
+            
+            column,maxscore=minimax(game, True, depth,-math.inf,math.inf,rot,current_player,oplayer,count,l,connect,n,k,total_players)
+            
             count=cut
-            print(column)
             chair=random.randint(0,40)
             if chair==1:
                 print("EZ PZ!!!")
@@ -493,51 +563,50 @@ def ai(depth,game,count):
             if chair==30:
                 print("I could be a random number generator and be better than you!!!")
                                     
-            rows=row(column,rot,game)
-            print(rows,column)
-            print(game[0][column])
+            rows=row(column,rot,game,n)
+                    
             game=gab(game,current_player,rows,column)
             if count<n:
                 count=count+1    
             time_elapsed = time.time() - time_b
             print(time_elapsed)
-        check_win(game,current_player,count)  
+        check_win(game,current_player,count,n,k,total_players,connect)  
     return count
-def check_win(game,current_player,count):
+def check_win(game,current_player,count,n,k,total_players,connect):
     colour_player=["wo",'red','yellow','green','blue','cyan','magenta','black']
-    true,t,y=Win(game,current_player,count)    
+    true,t,y=Win(game,current_player,count,connect,n,k)    
                         
     if true== True:
-        plot(game,t,y,colour_player[current_player])
+        plot(game,t,y,colour_player[current_player],n,k,total_players)
         print("you win ")
         start()
-    if draw(game)==True:
+    if draw(game,connect,n,k)==True:
         print("draw")
-        plot(game,0,0,"Draw")
+        plot(game,0,0,"Draw",n,k,total_players)
         start()
     else:
-        plot(game,0,0,"Keep Going")
-def AI_n():
+        plot(game,0,0,"Keep Going",n,k,total_players)
+def AI_n(h_p_c):
       try:
-        global ai_c
+        
         ai_c=int(input("how many ai(total of 2 must be less than 7)"))
       except:
           print("you faliure")
           AI_n()
-      global total_players
+      
       total_players=ai_c+h_p_c
       if 7<total_players:
           print("god you anoy me ")
           AI_n()
-    
+      return(ai_c)
 def play():
 
     while play:
-        connect_c()
-        game_size()
-        hu_pl_c()
-        AI_n()
-        
+        connect=connect_c()
+        n,k=game_size(connect)
+        h_p_c=hu_pl_c()
+        ai_c=AI_n(h_p_c)
+        total_players=ai_c+h_p_c
         game = np.zeros((n, k))
        
         for l in range(1,total_players+1):
@@ -549,19 +618,19 @@ def play():
         x=1
         
        
-        global count
+        
         count=1
-        global rot
+        
         rot=n-1
         if h_p_c<=1:
                turn=turnn()
                
-               depth=diff()
+               depth=diff(total_players)
     
-        plot(game,0,0,"Let's Start Dude")
+        plot(game,0,0,"Let's Start Dude",n,k,total_players)
         x==1
         while x==1:
-            PvE(depth,game,turn)
+            PvE(depth,game,turn,connect,h_p_c,n,k,rot,count,ai_c,total_players)
            
                     
                     
