@@ -11,7 +11,7 @@ from numba import njit,prange
 
 
 
-@njit
+@njit(nogil=True)
 def row(column,row,game,n): 
     for load in range(0,n):
         
@@ -92,7 +92,7 @@ def Win(board, player,count,connect,n,k):
                         
                         return (True,t,l)
     return False,0,0
-@njit
+@njit(nogil=True)
 def win_pos(board, player,count,connect,n,k):
     for y in range(0,n):
         for x in range(0,k):
@@ -144,14 +144,18 @@ def win_pos(board, player,count,connect,n,k):
                         return (True)
     return False
 def col(k):
-    col=int(input("what column would you like: "))
+    try:
+        col=int(input("what column would you like: "))
+    except:
+        print("please be cool")
+        return(col(k))
     if col>k-1 or col<0:
         return("m")
     return(col)
-def plank(game_b,rows,player,n):
+def plank(game_b,rows,player,n,k):
     column_choice=0
     try:
-        column_choice=int(col())
+        column_choice=int(col(k))
     except:
         print("put it in range boi")
         return (game_b,column_choice,"m")   
@@ -161,11 +165,11 @@ def plank(game_b,rows,player,n):
         return (game_b,column_choice,"m")    
     game_b=gab(game_b,player,rows,column_choice)
     return(game_b,column_choice,player)   
-@njit    
+@njit(nogil=True)    
 def terminal(board,player,oplayer,count,connect,n,k):
     return win_pos(board,player,count,connect,n,k) or win_pos(board,oplayer,count,connect,n,k) 
 
-@njit
+@njit(nogil=True)
 def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players):
     
     if depth==0 or terminal(board,player,oplayer,count,connect,n,k):
@@ -225,14 +229,14 @@ def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connec
         if l==player:
             max_play=True
             if l==total_players:
-                l=0
+                l=1
         if total_players<l and l!=player:
             l=1
             max_play=False
         if l!=player:
             max_play=False
         value=math.inf
-        print(l)
+        
         #column,value=mini(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value)    
         
         
@@ -265,7 +269,7 @@ def minimax(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connec
         
         return column, value
 
-@njit
+@njit(nogil=True)
 def maxi(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value):
             for col in prange(0,k):
                 
@@ -293,7 +297,7 @@ def maxi(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n
                    
                    break
             return column,value
-@njit
+@njit(nogil=True)
 def mini(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n,k,total_players,value):
            
         for col in prange(0,k):
@@ -322,7 +326,7 @@ def mini(board, max_play, depth ,alpha,beta,rot,player,oplayer,count,l,connect,n
                break
         return column,value
 
-@njit
+@njit(nogil=True)
 def score_pos(board,player,op,count,connect,n,k ):
     
     
@@ -398,7 +402,7 @@ def score_pos(board,player,op,count,connect,n,k ):
     
     return score
 
-@njit
+@njit(nogil=True)
 def game_board(game_map, player, row, column):
     
     game_map[row][column] = player
@@ -408,7 +412,7 @@ def game_board(game_map, player, row, column):
     
     #print(game_map)
     return(game_map)
-@njit
+@njit(nogil=True)
 def gab(game_map, player, row, column):
     
     
@@ -438,7 +442,7 @@ def connect_c():
         connect=int(input("how many connects"))
     except:
         print("please enter an integer")
-        connect_c()
+        return connect_c()
     return connect
 def game_size(connect):
     print("clasic is 6x7 ")
@@ -449,13 +453,14 @@ def game_size(connect):
         k= int(input("how may columns you want? "))
     except:
         print("please enter an integer")
-        game_size() 
+        return game_size(connect) 
     if k<=connect or n<= connect:
         print("you cant play opn that man its to small")
-        game_size()
+        return game_size(connect)
     if n>1000 or k>1000:
             print("i want you to have a good time not wait so smaller number")
-            game_size()
+            return game_size(connect)
+    
     return(n,k)
 def hu_pl_c():
     try:
@@ -463,23 +468,15 @@ def hu_pl_c():
         h_p_c=int(input("how many humans(selecting one will be against the AI must be less than 7)"))
     except:
          print("please enter an integer")
-         hu_pl_c()
+         return hu_pl_c()
     
     if 7<h_p_c:
         print("I dont have enough colours, i didnt know poeple could have that many friends")
-        hu_pl_c()
+        return hu_pl_c()
     return h_p_c
-def turnn():
-    hellow = int(input("Would you like to go:\n 1:first,\n 2: second \n 3:random"))
-   
-    if hellow==1:
-        turn=0
-    if hellow==2:
-        turn=1
-    if hellow==3:
-        turn=random.ranint(0,1)
+
         
-    return(turn)
+    
     
 def diff(total_players):
     try:
@@ -503,7 +500,7 @@ def diff(total_players):
         depth=total_players*5+1
         return depth
     else:
-        diff()
+        return diff()
     
 def PvE(depth,game,turn,connect,h_p_c,n,k,rot,count,ai_c,total_players):
     x=1
@@ -522,7 +519,7 @@ def player(game,count,h_p_c,n,k,rot,total_players,connect):
     if 0<h_p_c:
         for p in range(1,h_p_c+1):
             current_player = p
-            game,column_choice,current_player=plank(game,rot,current_player)
+            game,column_choice,current_player=plank(game,rot,current_player,n,k)
             if current_player=="m":
                 print("you miss your go")
             if count<n:
@@ -592,12 +589,12 @@ def AI_n(h_p_c):
         ai_c=int(input("how many ai(total of 2 must be less than 7)"))
       except:
           print("you faliure")
-          AI_n()
+          return AI_n(h_p_c)
       
       total_players=ai_c+h_p_c
       if 7<total_players:
           print("god you anoy me ")
-          AI_n()
+          return AI_n(h_p_c)
       return(ai_c)
 def play():
 
@@ -622,8 +619,8 @@ def play():
         count=1
         
         rot=n-1
-        if h_p_c<=1:
-               turn=turnn()
+        if 0<ai_c:
+               turn=0
                
                depth=diff(total_players)
     
